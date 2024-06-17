@@ -1,6 +1,30 @@
 [package]
 name = "ali-oss"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "an aliyun oss skd"
+authors = ["sanmu <578595193@qq.com>"]
+homepage = "https://github.com/rust-china/ali-oss"
+documentation = "https://docs.rs/ali-oss"
+categories = ["api-bindings"]
+keywords = ["async", "aliyun", "oss", "sdk"]
+exclude = ["/example"]
 
 [dependencies]
+anyhow = "1.0"
+chrono = "0.4"
+
+base64 = "0.22"
+md5 = "0.7"
+ring = "0.17"
+
+reqwest = { version = "0.12", features = ["stream"] }
+roxmltree = "0.20"
+futures = "0.3"
+bytes = "1.6.0"
+
+[dev-dependencies]
+dotenvy = "0.15.7"
+tokio = { version = "1.38", features = ["full"] }
+ali-oss = { path = "." }
