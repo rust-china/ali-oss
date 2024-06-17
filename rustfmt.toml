@@ -1,0 +1,12 @@
+# 指定行的最大宽度，超过这个宽度的行将会被换行。
+max_width = 250
+# 使用硬制表符而不是空格来进行缩进。
+hard_tabs = true
+# 设置新行的样式，可以是 Unix、Windows 或 Native。
+newline_style = "Unix"
+# 控制是否将多个导入合并到一行。
+merge_imports = true
+# 控制是否格式化字符串字面量。
+format_strings = true
+# 控制是否格式化文档注释中的代码。
+format_code_in_doc_comments = true
