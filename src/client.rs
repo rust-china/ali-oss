@@ -45,6 +45,7 @@ impl Client {
 		}
 		Ok(buckets)
 	}
+
 	// https://help.aliyun.com/zh/oss/developer-reference/putbucket
 	pub async fn put_bucket(&self) -> anyhow::Result<crate::Bucket> {
 		let mut request = self.oss_config.get_bucket_request(reqwest::Method::PUT, None)?;
@@ -65,6 +66,7 @@ impl Client {
 		*self.bucket.creation_date.lock().unwrap() = creation_date.clone();
 		Ok(crate::Bucket::new(self.bucket.name.as_str(), self.bucket.location.as_str(), "", creation_date))
 	}
+
 	// https://help.aliyun.com/zh/oss/developer-reference/getbucketinfo
 	pub async fn get_bucket_info(&self) -> anyhow::Result<Option<crate::Bucket>> {
 		static BUCKET_INFO: &str = "bucketInfo";
@@ -100,5 +102,21 @@ impl Client {
 		let xml_data = response.text().await?;
 		let doc: roxmltree::Document = roxmltree::Document::parse(&xml_data)?;
 		crate::types::BucketLocation::new_from_xml_node(doc.root())
+	}
+
+	// https://help.aliyun.com/zh/oss/developer-reference/getbucketstat
+	pub async fn get_bucket_stat(&self) -> anyhow::Result<crate::types::BucketStat> {
+		static BUCKET_STAT: &str = "stat";
+		let mut request = self.oss_config.get_bucket_request(reqwest::Method::GET, None)?;
+		request.url_mut().set_query(Some(BUCKET_STAT));
+		self.oss_config.sign_header_request(&mut request)?;
+
+		let response = self.oss_config.get_request_builder(request)?.send().await?;
+		if !response.status().is_success() {
+			return Err(anyhow::anyhow!(response.text().await?));
+		}
+		let xml_data = response.text().await?;
+		let doc: roxmltree::Document = roxmltree::Document::parse(&xml_data)?;
+		crate::types::BucketStat::new_from_xml_node(doc.root())
 	}
 }
