@@ -261,4 +261,18 @@ impl Client {
 		}
 		Ok(response.headers().clone())
 	}
+
+	// https://help.aliyun.com/zh/oss/developer-reference/headobject
+	pub async fn head_object(&self, object_name: &str) -> anyhow::Result<reqwest::header::HeaderMap> {
+		let object_name = self.oss_config.get_object_name(object_name);
+		let mut request = self.oss_config.get_bucket_request(reqwest::Method::HEAD, None)?;
+		request.url_mut().set_path(object_name.as_ref());
+		self.oss_config.sign_header_request(&mut request)?;
+
+		let response = self.oss_config.get_request_builder(request)?.send().await?;
+		if !response.status().is_success() {
+			return Err(anyhow::anyhow!(response.text().await?));
+		}
+		Ok(response.headers().clone())
+	}
 }
