@@ -45,4 +45,23 @@ impl Client {
 		}
 		Ok(buckets)
 	}
+	// https://help.aliyun.com/zh/oss/developer-reference/putbucket
+	pub async fn put_bucket(&self) -> anyhow::Result<crate::Bucket> {
+		let mut request = self.oss_config.get_bucket_request(reqwest::Method::PUT, None)?;
+		self.oss_config.sign_header_request(&mut request)?;
+
+		let response = self.oss_config.get_request_builder(request)?.send().await?;
+		if !response.status().is_success() {
+			return Err(anyhow::anyhow!(response.text().await?));
+		}
+		let creation_date = {
+			let date = response.headers().get("date");
+			if let Some(date) = date {
+				Some(chrono::DateTime::parse_from_rfc2822(date.to_str()?)?.into())
+			} else {
+				None
+			}
+		};
+		Ok(crate::Bucket::new(&self.bucket.name, &self.bucket.location, "", creation_date))
+	}
 }

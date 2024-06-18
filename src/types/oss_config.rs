@@ -73,6 +73,16 @@ impl OssConfig {
 		Self::generate_bucket_url(&self.bucket_name, &self.bucket_location, self.is_internal)
 	}
 
+	pub fn get_bucket_request(&self, method: Method, body: Option<bytes::Bytes>) -> anyhow::Result<reqwest::Request> {
+		let url = self.get_bucket_url()?;
+		let mut request = reqwest::Request::new(method, url);
+		if let Some(body) = body {
+			*request.body_mut() = Some(reqwest::Body::from(body));
+		}
+		// request.headers_mut().insert(header::CONTENT_TYPE, "text/plain".try_into()?);
+		Ok(request)
+	}
+
 	pub(crate) fn sign_header_request(&self, request: &mut reqwest::Request) -> anyhow::Result<()> {
 		let content_md5 = {
 			let content_md5 = request.headers().get("Content-MD5");
