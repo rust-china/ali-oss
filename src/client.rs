@@ -13,12 +13,13 @@ impl Client {
 		let bucket = crate::Bucket::new(oss_config.bucket_name.as_str(), oss_config.bucket_location.as_str(), "", None);
 		Ok(Self { oss_config, bucket })
 	}
-	pub fn new<T: ToString>(access_key_id: T, access_key_secret: T, bucket_name: T, bucket_location: T, is_internal: bool) -> Self {
+	pub fn new<T: ToString>(access_key_id: T, access_key_secret: T, bucket_name: T, bucket_location: T, path: T, is_internal: bool) -> Self {
 		let oss_config = Arc::new(OssConfig::new(
 			access_key_id.to_string(),
 			access_key_secret.to_string(),
 			bucket_name.to_string().clone(),
 			bucket_location.to_string().clone(),
+			path.to_string().clone(),
 			is_internal,
 		));
 		let bucket = crate::Bucket::new(bucket_name, bucket_location, "", None);
@@ -220,5 +221,21 @@ impl Client {
 			return Err(anyhow::anyhow!(response.text().await?));
 		}
 		Ok(())
+	}
+
+	// https://help.aliyun.com/zh/oss/developer-reference/copyobject
+	pub async fn copy_object(&self, from_object_name: &str, to_object_name: &str) -> anyhow::Result<reqwest::header::HeaderMap> {
+		let from_object_name = self.oss_config.get_object_name(from_object_name);
+		let to_object_name = self.oss_config.get_object_name(to_object_name);
+		let mut request = self.oss_config.get_bucket_request(reqwest::Method::PUT, None)?;
+		request.url_mut().set_path(to_object_name.as_ref());
+		request.headers_mut().insert("x-oss-copy-source", format!("/{}/{}", self.oss_config.bucket_name, from_object_name).try_into()?);
+		self.oss_config.sign_header_request(&mut request)?;
+
+		let response = self.oss_config.get_request_builder(request)?.send().await?;
+		if !response.status().is_success() {
+			return Err(anyhow::anyhow!(response.text().await?));
+		}
+		Ok(response.headers().clone())
 	}
 }

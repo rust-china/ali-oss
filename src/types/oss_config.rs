@@ -1,5 +1,6 @@
 use crate::SignatureAble;
 use reqwest::{header, Method, Url};
+use std::borrow::Cow;
 
 #[derive(Debug, Clone)]
 pub struct OssConfig {
@@ -7,6 +8,7 @@ pub struct OssConfig {
 	pub access_key_secret: String,
 	pub bucket_name: String,
 	pub bucket_location: crate::types::BucketLocation,
+	pub path: String,
 	pub is_internal: bool,
 }
 
@@ -16,18 +18,22 @@ impl OssConfig {
 		let access_key_secret = std::env::var("ALI_OSS_ACCESS_KEY_SECRET")?;
 		let bucket_name = std::env::var("ALI_OSS_BUCKET")?;
 		let bucket_location = std::env::var("ALI_OSS_LOCATION")?;
+		let path = std::env::var("ALI_OSS_PATH").unwrap_or("".to_owned());
 		let internal = std::env::var("ALI_OSS_INTERNAL")?;
 
 		// let bucket = crate::Bucket::new(bucket_name, bucket_location, "".to_owned(), None);
-		let client = Self::new(access_key_id, access_key_secret, bucket_name, bucket_location, internal == "true");
+		let client = Self::new(access_key_id, access_key_secret, bucket_name, bucket_location, path, internal == "true");
 		Ok(client)
 	}
-	pub fn new(access_key_id: String, access_key_secret: String, bucket_name: String, bucket_location: String, is_internal: bool) -> Self {
+	pub fn new(access_key_id: String, access_key_secret: String, bucket_name: String, bucket_location: String, path: String, is_internal: bool) -> Self {
+		let path = if path.starts_with("/") { path[1..].to_string() } else { path };
+		let path = if path.ends_with("/") { path[..path.len() - 1].to_string() } else { path };
 		Self {
 			access_key_id: access_key_id.to_string(),
 			access_key_secret: access_key_secret.to_string(),
 			bucket_name: bucket_name.to_string(),
 			bucket_location: crate::types::BucketLocation::new(bucket_location),
+			path,
 			is_internal,
 		}
 	}
@@ -58,6 +64,18 @@ impl OssConfig {
 }
 
 impl OssConfig {
+	pub fn get_object_name<'a>(&self, object_name: &'a str) -> Cow<'a, str> {
+		if self.path.is_empty() {
+			if object_name.starts_with("/") {
+				object_name[1..].into()
+			} else {
+				object_name.into()
+			}
+		} else {
+			format!("{}/{}", self.path, if object_name.starts_with("/") { &object_name[1..] } else { object_name }).into()
+		}
+	}
+
 	pub fn get_endpoint_url(&self) -> anyhow::Result<Url> {
 		Self::generate_endpoint_url(&self.bucket_location.as_str(), self.is_internal)
 	}
