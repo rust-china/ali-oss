@@ -17,5 +17,11 @@
 - delete_bucket()
 
 - list_objects()
-- put_object(object_name, types)
+- put_object(object_name, byptes)
 - put_object_stream(object_name, stream)
+- get_object(object_name)
+- delete_object(object_name)
+- copy_object(from_object, to_object_name)
+- append_object(object_name, byptes, position)
+- head_object(object_name)
+- get_object_meta(object_name)
