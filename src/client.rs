@@ -138,8 +138,9 @@ impl Client {
 impl Client {
 	// https://www.alibabacloud.com/help/zh/oss/developer-reference/listobjectsv2
 	pub async fn list_objects(&self, prefix: &str) -> anyhow::Result<(Vec<crate::Folder>, Vec<crate::File>)> {
+		let prefix = self.oss_config.get_object_name(prefix);
 		let mut request = self.oss_config.get_bucket_request(reqwest::Method::GET, None)?;
-		request.url_mut().query_pairs_mut().append_pair("list-type", "2").append_pair("delimiter", "/").append_pair("prefix", prefix);
+		request.url_mut().query_pairs_mut().append_pair("list-type", "2").append_pair("delimiter", "/").append_pair("prefix", prefix.as_ref());
 		self.oss_config.sign_header_request(&mut request)?;
 
 		let response = self.oss_config.get_request_builder(request)?.send().await?;
@@ -170,8 +171,9 @@ impl Client {
 
 	//https://help.aliyun.com/zh/oss/developer-reference/putobject
 	pub async fn put_object<T: Into<bytes::Bytes>>(&self, object_name: &str, bytes: T) -> anyhow::Result<reqwest::header::HeaderMap> {
+		let object_name = self.oss_config.get_object_name(object_name);
 		let mut request = self.oss_config.get_bucket_request(reqwest::Method::PUT, Some(bytes.into()))?;
-		request.url_mut().set_path(object_name);
+		request.url_mut().set_path(object_name.as_ref());
 		self.oss_config.sign_header_request(&mut request)?;
 
 		let response = self.oss_config.get_request_builder(request)?.send().await?;
@@ -184,8 +186,9 @@ impl Client {
 	where
 		S: futures::stream::Stream<Item = reqwest::Result<bytes::Bytes>> + Send + Sync + 'static,
 	{
+		let object_name = self.oss_config.get_object_name(object_name);
 		let mut request = self.oss_config.get_bucket_request(reqwest::Method::PUT, None)?;
-		request.url_mut().set_path(object_name);
+		request.url_mut().set_path(object_name.as_ref());
 		*request.body_mut() = Some(reqwest::Body::wrap_stream(stream));
 		self.oss_config.sign_header_request(&mut request)?;
 
@@ -198,8 +201,9 @@ impl Client {
 
 	// https://help.aliyun.com/zh/oss/developer-reference/getobject
 	pub async fn get_object(&self, object_name: &str) -> anyhow::Result<(bytes::Bytes, reqwest::header::HeaderMap)> {
+		let object_name = self.oss_config.get_object_name(object_name);
 		let mut request = self.oss_config.get_bucket_request(reqwest::Method::GET, None)?;
-		request.url_mut().set_path(object_name);
+		request.url_mut().set_path(object_name.as_ref());
 		self.oss_config.sign_header_request(&mut request)?;
 
 		let response = self.oss_config.get_request_builder(request)?.send().await?;
@@ -212,8 +216,9 @@ impl Client {
 
 	// https://help.aliyun.com/zh/oss/developer-reference/deleteobject
 	pub async fn delete_object(&self, object_name: &str) -> anyhow::Result<()> {
+		let object_name = self.oss_config.get_object_name(object_name);
 		let mut request = self.oss_config.get_bucket_request(reqwest::Method::DELETE, None)?;
-		request.url_mut().set_path(object_name);
+		request.url_mut().set_path(object_name.as_ref());
 		self.oss_config.sign_header_request(&mut request)?;
 
 		let response = self.oss_config.get_request_builder(request)?.send().await?;
@@ -230,6 +235,24 @@ impl Client {
 		let mut request = self.oss_config.get_bucket_request(reqwest::Method::PUT, None)?;
 		request.url_mut().set_path(to_object_name.as_ref());
 		request.headers_mut().insert("x-oss-copy-source", format!("/{}/{}", self.oss_config.bucket_name, from_object_name).try_into()?);
+		self.oss_config.sign_header_request(&mut request)?;
+
+		let response = self.oss_config.get_request_builder(request)?.send().await?;
+		if !response.status().is_success() {
+			return Err(anyhow::anyhow!(response.text().await?));
+		}
+		Ok(response.headers().clone())
+	}
+
+	// https://help.aliyun.com/zh/oss/developer-reference/appendobject
+	pub async fn append_object<T: Into<bytes::Bytes>>(&self, object_name: &str, bytes: T, position: usize) -> anyhow::Result<reqwest::header::HeaderMap> {
+		let object_name = self.oss_config.get_object_name(object_name);
+		static APPEND: &str = "append";
+		let mut request = self.oss_config.get_bucket_request(reqwest::Method::POST, Some(bytes.into()))?;
+		request.url_mut().set_path(object_name.as_ref());
+		request.headers_mut().insert("position", position.try_into()?);
+		request.url_mut().set_query(Some(APPEND));
+		request.url_mut().query_pairs_mut().append_pair("position", position.to_string().as_str());
 		self.oss_config.sign_header_request(&mut request)?;
 
 		let response = self.oss_config.get_request_builder(request)?.send().await?;
