@@ -6,7 +6,7 @@ pub struct OssConfig {
 	pub access_key_id: String,
 	pub access_key_secret: String,
 	pub bucket_name: String,
-	pub bucket_location: String,
+	pub bucket_location: crate::types::BucketLocation,
 	pub is_internal: bool,
 }
 
@@ -27,7 +27,7 @@ impl OssConfig {
 			access_key_id: access_key_id.to_string(),
 			access_key_secret: access_key_secret.to_string(),
 			bucket_name: bucket_name.to_string(),
-			bucket_location: bucket_location.to_string(),
+			bucket_location: crate::types::BucketLocation::new(bucket_location),
 			is_internal,
 		}
 	}
@@ -59,7 +59,7 @@ impl OssConfig {
 
 impl OssConfig {
 	pub fn get_endpoint_url(&self) -> anyhow::Result<Url> {
-		Self::generate_endpoint_url(&self.bucket_location, self.is_internal)
+		Self::generate_endpoint_url(&self.bucket_location.as_str(), self.is_internal)
 	}
 
 	pub fn get_endpoint_request(&self, method: Method) -> anyhow::Result<reqwest::Request> {
@@ -70,7 +70,7 @@ impl OssConfig {
 	}
 
 	pub fn get_bucket_url(&self) -> anyhow::Result<Url> {
-		Self::generate_bucket_url(&self.bucket_name, &self.bucket_location, self.is_internal)
+		Self::generate_bucket_url(&self.bucket_name, &self.bucket_location.as_str(), self.is_internal)
 	}
 
 	pub fn get_bucket_request(&self, method: Method, body: Option<bytes::Bytes>) -> anyhow::Result<reqwest::Request> {

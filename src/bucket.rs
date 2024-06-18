@@ -1,18 +1,19 @@
-#[derive(Debug, Clone)]
+use std::sync::Mutex;
+#[derive(Debug)]
 pub struct Bucket {
 	pub name: String,
-	pub location: String,
+	pub location: crate::types::BucketLocation,
 	pub comment: String,
-	pub creation_date: Option<chrono::DateTime<chrono::Utc>>,
+	pub creation_date: Mutex<Option<chrono::DateTime<chrono::Utc>>>,
 }
 
 impl Bucket {
 	pub fn new<T: ToString, U: ToString>(name: T, location: T, comment: U, creation_date: Option<chrono::DateTime<chrono::Utc>>) -> Self {
 		Self {
 			name: name.to_string(),
-			location: location.to_string(),
+			location: crate::types::BucketLocation::new(location),
 			comment: comment.to_string(),
-			creation_date,
+			creation_date: Mutex::new(creation_date),
 		}
 	}
 	pub fn new_from_xml_node(node: roxmltree::Node) -> anyhow::Result<Self> {
