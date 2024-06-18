@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+#[derive(Debug)]
 pub struct CanonicalizedHeaders(Option<BTreeMap<String, String>>);
 
 impl Default for CanonicalizedHeaders {

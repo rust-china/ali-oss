@@ -166,4 +166,32 @@ impl Client {
 		let (_folders, files) = self.list_objects(prefix).await?;
 		Ok(files)
 	}
+
+	//https://help.aliyun.com/zh/oss/developer-reference/putobject
+	pub async fn put_object<T: Into<bytes::Bytes>>(&self, object_name: &str, bytes: T) -> anyhow::Result<reqwest::header::HeaderMap> {
+		let mut request = self.oss_config.get_bucket_request(reqwest::Method::PUT, Some(bytes.into()))?;
+		request.url_mut().set_path(object_name);
+		self.oss_config.sign_header_request(&mut request)?;
+
+		let response = self.oss_config.get_request_builder(request)?.send().await?;
+		if !response.status().is_success() {
+			return Err(anyhow::anyhow!(response.text().await?));
+		}
+		Ok(response.headers().clone())
+	}
+	pub async fn put_object_stream<S>(&self, object_name: &str, stream: S) -> anyhow::Result<reqwest::header::HeaderMap>
+	where
+		S: futures::stream::Stream<Item = reqwest::Result<bytes::Bytes>> + Send + Sync + 'static,
+	{
+		let mut request = self.oss_config.get_bucket_request(reqwest::Method::PUT, None)?;
+		request.url_mut().set_path(object_name);
+		*request.body_mut() = Some(reqwest::Body::wrap_stream(stream));
+		self.oss_config.sign_header_request(&mut request)?;
+
+		let response = self.oss_config.get_request_builder(request)?.send().await?;
+		if !response.status().is_success() {
+			return Err(anyhow::anyhow!(response.text().await?));
+		}
+		Ok(response.headers().clone())
+	}
 }
