@@ -119,4 +119,16 @@ impl Client {
 		let doc: roxmltree::Document = roxmltree::Document::parse(&xml_data)?;
 		crate::types::BucketStat::new_from_xml_node(doc.root())
 	}
+	// https://help.aliyun.com/zh/oss/developer-reference/deletebucket
+	pub async fn delete_bucket(&self) -> anyhow::Result<()> {
+		let mut request = self.oss_config.get_bucket_request(reqwest::Method::DELETE, None)?;
+		self.oss_config.sign_header_request(&mut request)?;
+
+		let response = self.oss_config.get_request_builder(request)?.send().await?;
+		if !response.status().is_success() {
+			return Err(anyhow::anyhow!(response.text().await?));
+		}
+		*self.bucket.creation_date.lock().unwrap() = None;
+		Ok(())
+	}
 }
