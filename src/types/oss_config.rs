@@ -80,7 +80,6 @@ impl OssConfig {
 			request.headers_mut().insert(header::CONTENT_LENGTH, body.len().try_into()?);
 			*request.body_mut() = Some(reqwest::Body::from(body));
 		}
-		println!("request headers: {:?}", request.headers());
 		// request.headers_mut().insert(header::CONTENT_TYPE, "text/plain".try_into()?);
 		Ok(request)
 	}
@@ -103,7 +102,6 @@ impl OssConfig {
 			}
 		};
 		let canonicalized_oss_headers: crate::types::CanonicalizedHeaders = (&*request).into();
-		println!("canonicalized_oss_headers: {:?}", canonicalized_oss_headers);
 		let canonicalized_resource = {
 			let host = request.url().host_str().ok_or(anyhow::anyhow!("host not found"))?;
 			if host.starts_with(self.bucket_location.as_str()) {
