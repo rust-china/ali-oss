@@ -119,6 +119,7 @@ impl Client {
 		let doc: roxmltree::Document = roxmltree::Document::parse(&xml_data)?;
 		crate::types::BucketStat::new_from_xml_node(doc.root())
 	}
+
 	// https://help.aliyun.com/zh/oss/developer-reference/deletebucket
 	pub async fn delete_bucket(&self) -> anyhow::Result<()> {
 		let mut request = self.oss_config.get_bucket_request(reqwest::Method::DELETE, None)?;
@@ -130,5 +131,39 @@ impl Client {
 		}
 		*self.bucket.creation_date.lock().unwrap() = None;
 		Ok(())
+	}
+}
+
+impl Client {
+	// https://www.alibabacloud.com/help/zh/oss/developer-reference/listobjectsv2
+	pub async fn list_objects(&self, prefix: &str) -> anyhow::Result<(Vec<crate::Folder>, Vec<crate::File>)> {
+		let mut request = self.oss_config.get_bucket_request(reqwest::Method::GET, None)?;
+		request.url_mut().query_pairs_mut().append_pair("list-type", "2").append_pair("delimiter", "/").append_pair("prefix", prefix);
+		self.oss_config.sign_header_request(&mut request)?;
+
+		let response = self.oss_config.get_request_builder(request)?.send().await?;
+		if !response.status().is_success() {
+			return Err(anyhow::anyhow!(response.text().await?));
+		}
+		let xml_data = response.text().await?;
+		// println!("xml_data: {}", xml_data);
+		let doc: roxmltree::Document = roxmltree::Document::parse(&xml_data)?;
+		let mut folders = Vec::new();
+		for folder_node in doc.descendants().filter(|n| n.has_tag_name("CommonPrefixes")) {
+			folders.push(crate::Folder::new_from_xml_node(folder_node)?);
+		}
+		let mut files = Vec::new();
+		for file_node in doc.descendants().filter(|n| n.has_tag_name("Contents")) {
+			files.push(crate::File::new_from_xml_node(file_node)?);
+		}
+		Ok((folders, files))
+	}
+	pub async fn list_folders(&self, prefix: &str) -> anyhow::Result<Vec<crate::Folder>> {
+		let (folders, _files) = self.list_objects(prefix).await?;
+		Ok(folders)
+	}
+	pub async fn list_files(&self, prefix: &str) -> anyhow::Result<Vec<crate::File>> {
+		let (_folders, files) = self.list_objects(prefix).await?;
+		Ok(files)
 	}
 }
