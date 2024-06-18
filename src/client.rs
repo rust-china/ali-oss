@@ -1,27 +1,27 @@
 use crate::types::OssConfig;
-use std::sync::Arc;
+use crate::SignatureAble;
 
 #[derive(Debug)]
 pub struct Client {
-	oss_config: Arc<OssConfig>,
+	oss_config: OssConfig,
 	bucket: crate::Bucket,
 }
 
 impl Client {
 	pub fn from_env() -> anyhow::Result<Self> {
-		let oss_config = Arc::new(OssConfig::from_env()?);
+		let oss_config = OssConfig::from_env()?;
 		let bucket = crate::Bucket::new(oss_config.bucket_name.as_str(), oss_config.bucket_location.as_str(), "", None);
 		Ok(Self { oss_config, bucket })
 	}
 	pub fn new<T: ToString>(access_key_id: T, access_key_secret: T, bucket_name: T, bucket_location: T, path: T, is_internal: bool) -> Self {
-		let oss_config = Arc::new(OssConfig::new(
+		let oss_config = OssConfig::new(
 			access_key_id.to_string(),
 			access_key_secret.to_string(),
 			bucket_name.to_string().clone(),
 			bucket_location.to_string().clone(),
 			path.to_string().clone(),
 			is_internal,
-		));
+		);
 		let bucket = crate::Bucket::new(bucket_name, bucket_location, "", None);
 		Self { oss_config, bucket }
 	}
@@ -290,5 +290,36 @@ impl Client {
 			return Err(anyhow::anyhow!(response.text().await?));
 		}
 		Ok(response.headers().clone())
+	}
+
+	// https://www.alibabacloud.com/help/zh/oss/developer-reference/ddd-signatures-to-urls
+	pub async fn sign_object(&self, object_name: &str, expires_duration: std::time::Duration) -> anyhow::Result<String> {
+		let object_name = self.oss_config.get_object_name(object_name);
+		let expires_time = {
+			let datetime: chrono::DateTime<chrono::Utc> = std::time::SystemTime::now().into();
+			let expires_time = datetime + chrono::Duration::from_std(expires_duration)?;
+			expires_time
+		};
+		let mut object_url = {
+			let host = format!("{}.{}.aliyuncs.com", self.oss_config.bucket_name, self.oss_config.bucket_location.as_str());
+			let object_link = format!("https://{}/{}", host, object_name);
+			reqwest::Url::parse(&object_link)?
+		};
+		let signature_string = crate::types::ParamSignature::new(
+			reqwest::Method::GET,
+			None,
+			None,
+			expires_time.clone(),
+			crate::types::CanonicalizedHeaders::new(None),
+			crate::types::CanonicalizedResource::new(format!("/{}/{}", self.oss_config.bucket_name, object_name)),
+		)
+		.get_signature_string(&self.oss_config);
+		object_url
+			.query_pairs_mut()
+			.append_pair("OSSAccessKeyId", &self.oss_config.access_key_id)
+			.append_pair("Expires", expires_time.timestamp().to_string().as_str())
+			.append_pair("Signature", &signature_string);
+
+		Ok(object_url.to_string())
 	}
 }

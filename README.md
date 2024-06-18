@@ -7,6 +7,14 @@
 [Latest Version]: https://img.shields.io/crates/v/ali-oss.svg
 [crates.io]: https://crates.io/crates/ali-oss
 
+### Usage
+
+```rust
+let oss_client = crate::Client::from_env()?;
+let buckets = oss_client.list_buckets().await?;
+println!("buckets: {:?}", buckets);
+```
+
 ### Methods:
 
 - list_buckets()
@@ -25,3 +33,5 @@
 - append_object(object_name, byptes, position)
 - head_object(object_name)
 - get_object_meta(object_name)
+
+- sign_object(object_name, duration_time)
