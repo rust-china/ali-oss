@@ -64,4 +64,23 @@ impl Client {
 		};
 		Ok(crate::Bucket::new(&self.bucket.name, &self.bucket.location, "", creation_date))
 	}
+	// https://help.aliyun.com/zh/oss/developer-reference/getbucketinfo
+	pub async fn get_bucket_info(&self) -> anyhow::Result<Option<crate::Bucket>> {
+		static BUCKET_INFO: &str = "bucketInfo";
+		let mut request = self.oss_config.get_bucket_request(reqwest::Method::GET, None)?;
+		request.url_mut().set_query(Some(BUCKET_INFO));
+		self.oss_config.sign_header_request(&mut request)?;
+
+		let response = self.oss_config.get_request_builder(request)?.send().await?;
+		if !response.status().is_success() {
+			return Err(anyhow::anyhow!(response.text().await?));
+		}
+		let xml_data = response.text().await?;
+		let doc: roxmltree::Document = roxmltree::Document::parse(&xml_data)?;
+		if let Some(bucket_node) = doc.descendants().find(|n| n.has_tag_name("Bucket")) {
+			let bucket = crate::Bucket::new_from_xml_node(bucket_node)?;
+			return Ok(Some(bucket));
+		}
+		Ok(None)
+	}
 }
