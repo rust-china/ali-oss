@@ -24,7 +24,7 @@ println!("buckets: {:?}", buckets);
 - get_bucket_stat()
 - delete_bucket()
 
-- list_objects()
+- list_objects(prefix, delimiter)
 - put_object(object_name, byptes)
 - put_object_stream(object_name, stream)
 - get_object(object_name)

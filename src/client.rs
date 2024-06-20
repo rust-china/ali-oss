@@ -137,10 +137,16 @@ impl Client {
 
 impl Client {
 	// https://www.alibabacloud.com/help/zh/oss/developer-reference/listobjectsv2
-	pub async fn list_objects(&self, prefix: &str) -> anyhow::Result<(Vec<crate::Folder>, Vec<crate::File>)> {
-		let prefix = self.oss_config.get_object_name(prefix);
+	pub async fn list_objects(&self, prefix: Option<&str>, delimiter: Option<&str>) -> anyhow::Result<(Vec<crate::Folder>, Vec<crate::File>)> {
 		let mut request = self.oss_config.get_bucket_request(reqwest::Method::GET, None)?;
-		request.url_mut().query_pairs_mut().append_pair("list-type", "2").append_pair("delimiter", "/").append_pair("prefix", prefix.as_ref());
+		request.url_mut().query_pairs_mut().append_pair("list-type", "2");
+		if let Some(prefix) = prefix {
+			let prefix = self.oss_config.get_object_name(prefix);
+			request.url_mut().query_pairs_mut().append_pair("delimiter", prefix.as_ref());
+		}
+		if let Some(delimiter) = delimiter {
+			request.url_mut().query_pairs_mut().append_pair("delimiter", delimiter);
+		}
 		self.oss_config.sign_header_request(&mut request)?;
 
 		let response = self.oss_config.get_request_builder(request)?.send().await?;
@@ -160,12 +166,12 @@ impl Client {
 		}
 		Ok((folders, files))
 	}
-	pub async fn list_folders(&self, prefix: &str) -> anyhow::Result<Vec<crate::Folder>> {
-		let (folders, _files) = self.list_objects(prefix).await?;
+	pub async fn list_folders(&self, prefix: Option<&str>) -> anyhow::Result<Vec<crate::Folder>> {
+		let (folders, _files) = self.list_objects(prefix, Some("/")).await?;
 		Ok(folders)
 	}
-	pub async fn list_files(&self, prefix: &str) -> anyhow::Result<Vec<crate::File>> {
-		let (_folders, files) = self.list_objects(prefix).await?;
+	pub async fn list_files(&self, prefix: Option<&str>) -> anyhow::Result<Vec<crate::File>> {
+		let (_folders, files) = self.list_objects(prefix, Some("/")).await?;
 		Ok(files)
 	}
 
