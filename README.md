@@ -37,3 +37,4 @@ println!("buckets: {:?}", buckets);
 - sign_object(object_name, duration_time)
 
 - put_symlink(symlink_object_name, target_object_name)
+- get_symlink(symlink_object_name)
