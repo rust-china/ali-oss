@@ -35,3 +35,5 @@ println!("buckets: {:?}", buckets);
 - get_object_meta(object_name)
 
 - sign_object(object_name, duration_time)
+
+- put_symlink(symlink_object_name, target_object_name)

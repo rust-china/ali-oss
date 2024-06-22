@@ -329,3 +329,23 @@ impl Client {
 		Ok(object_url.to_string())
 	}
 }
+
+impl Client {
+	// https://www.alibabacloud.com/help/zh/oss/developer-reference/putsymlink
+	pub async fn put_symlink(&self, symlink_object_name: &str, target_object_name: &str) -> anyhow::Result<()> {
+		static SYMLINK: &str = "symlink";
+		let symlink_object_name = self.oss_config.get_object_name(symlink_object_name);
+		let target_object_name = self.oss_config.get_object_name(target_object_name);
+		let mut request = self.oss_config.get_bucket_request(reqwest::Method::PUT, None)?;
+		request.url_mut().set_path(symlink_object_name.as_ref());
+		request.headers_mut().insert("x-oss-symlink-target", target_object_name.as_ref().try_into()?);
+		request.url_mut().set_query(Some(SYMLINK));
+		self.oss_config.sign_header_request(&mut request)?;
+
+		let response = self.oss_config.get_request_builder(request)?.send().await?;
+		if !response.status().is_success() {
+			return Err(anyhow::anyhow!(response.text().await?));
+		}
+		Ok(())
+	}
+}
