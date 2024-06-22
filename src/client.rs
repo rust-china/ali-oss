@@ -142,7 +142,7 @@ impl Client {
 		request.url_mut().query_pairs_mut().append_pair("list-type", "2");
 		if let Some(prefix) = prefix {
 			let prefix = self.oss_config.get_object_name(prefix);
-			request.url_mut().query_pairs_mut().append_pair("delimiter", prefix.as_ref());
+			request.url_mut().query_pairs_mut().append_pair("prefix", prefix.as_ref());
 		}
 		if let Some(delimiter) = delimiter {
 			request.url_mut().query_pairs_mut().append_pair("delimiter", delimiter);
@@ -347,5 +347,21 @@ impl Client {
 			return Err(anyhow::anyhow!(response.text().await?));
 		}
 		Ok(())
+	}
+
+	// https://www.alibabacloud.com/help/zh/oss/developer-reference/getsymlink
+	pub async fn get_symlink(&self, object_name: &str) -> anyhow::Result<String> {
+		let object_name = self.oss_config.get_object_name(object_name);
+		static SYMLINK: &str = "symlink";
+		let mut request = self.oss_config.get_bucket_request(reqwest::Method::GET, None)?;
+		request.url_mut().set_path(object_name.as_ref());
+		request.url_mut().set_query(Some(SYMLINK));
+		self.oss_config.sign_header_request(&mut request)?;
+
+		let response = self.oss_config.get_request_builder(request)?.send().await?;
+		if !response.status().is_success() {
+			return Err(anyhow::anyhow!(response.text().await?));
+		}
+		Ok(response.headers().get("x-oss-symlink-target").ok_or(anyhow::anyhow!("no symlink target"))?.to_str()?.to_owned())
 	}
 }
