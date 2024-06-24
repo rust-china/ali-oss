@@ -235,12 +235,12 @@ impl Client {
 	}
 
 	// https://help.aliyun.com/zh/oss/developer-reference/copyobject
-	pub async fn copy_object(&self, from_object_name: &str, to_object_name: &str) -> anyhow::Result<reqwest::header::HeaderMap> {
-		let from_object_name = self.oss_config.get_object_name(from_object_name);
-		let to_object_name = self.oss_config.get_object_name(to_object_name);
+	pub async fn copy_object(&self, dest_object_name: &str, source_object_name: &str) -> anyhow::Result<reqwest::header::HeaderMap> {
+		let dest_object_name = self.oss_config.get_object_name(dest_object_name);
+		let source_object_name = self.oss_config.get_object_name(source_object_name);
 		let mut request = self.oss_config.get_bucket_request(reqwest::Method::PUT, None)?;
-		request.url_mut().set_path(to_object_name.as_ref());
-		request.headers_mut().insert("x-oss-copy-source", format!("/{}/{}", self.oss_config.bucket_name, from_object_name).try_into()?);
+		request.url_mut().set_path(dest_object_name.as_ref());
+		request.headers_mut().insert("x-oss-copy-source", format!("/{}/{}", self.oss_config.bucket_name, source_object_name).try_into()?);
 		self.oss_config.sign_header_request(&mut request)?;
 
 		let response = self.oss_config.get_request_builder(request)?.send().await?;
