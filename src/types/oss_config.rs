@@ -95,6 +95,14 @@ impl OssConfig {
 		let url = self.get_bucket_url()?;
 		let mut request = reqwest::Request::new(method, url);
 		if let Some(body) = body {
+			match infer::get(&body) {
+				Some(mime) => {
+					request.headers_mut().insert(header::CONTENT_TYPE, mime.mime_type().try_into()?);
+				}
+				None => {
+					request.headers_mut().insert(header::CONTENT_TYPE, "text/plain".try_into()?);
+				}
+			}
 			request.headers_mut().insert(header::CONTENT_LENGTH, body.len().try_into()?);
 			*request.body_mut() = Some(reqwest::Body::from(body));
 		}

@@ -15,6 +15,18 @@ let buckets = oss_client.list_buckets().await?;
 println!("buckets: {:?}", buckets);
 ```
 
+env config
+
+```
+ALI_OSS_ACCESS_KEY_ID=xxx
+ALI_OSS_ACCESS_KEY_SECRET=xxx
+ALI_OSS_BUCKET=xxx
+ALI_OSS_LOCATION=oss-cn-hangzhou
+ALI_OSS_PATH=/
+ALI_OSS_INTERNAL=false
+
+```
+
 ### Methods:
 
 - list_buckets()
