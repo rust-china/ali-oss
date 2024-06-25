@@ -1,5 +1,6 @@
 use crate::types::OssConfig;
 use crate::SignatureAble;
+use base64::prelude::*;
 
 #[derive(Debug)]
 pub struct Client {
@@ -154,7 +155,6 @@ impl Client {
 			return Err(anyhow::anyhow!(response.text().await?));
 		}
 		let xml_data = response.text().await?;
-		// println!("xml_data: {}", xml_data);
 		let doc: roxmltree::Document = roxmltree::Document::parse(&xml_data)?;
 		let mut folders = Vec::new();
 		for folder_node in doc.descendants().filter(|n| n.has_tag_name("CommonPrefixes")) {
@@ -277,7 +277,9 @@ impl Client {
 
 		let response = self.oss_config.get_request_builder(request)?.send().await?;
 		if !response.status().is_success() {
-			return Err(anyhow::anyhow!(response.text().await?));
+			let encoded_error_message = response.headers().get("x-oss-err").ok_or(anyhow::anyhow!("x-oss-err header not found"))?.to_str()?.to_string();
+			let err_message = String::from_utf8(BASE64_STANDARD.decode(encoded_error_message.as_bytes())?)?;
+			return Err(anyhow::anyhow!(err_message));
 		}
 		Ok(response.headers().clone())
 	}
@@ -293,9 +295,19 @@ impl Client {
 
 		let response = self.oss_config.get_request_builder(request)?.send().await?;
 		if !response.status().is_success() {
-			return Err(anyhow::anyhow!(response.text().await?));
+			let encoded_error_message = response.headers().get("x-oss-err").ok_or(anyhow::anyhow!("x-oss-err header not found"))?.to_str()?.to_string();
+			let err_message = String::from_utf8(BASE64_STANDARD.decode(encoded_error_message.as_bytes())?)?;
+			return Err(anyhow::anyhow!(err_message));
 		}
 		Ok(response.headers().clone())
+	}
+	// 只能判断文件是否存在, 无法判断文件夹
+	pub async fn is_object_exist(&self, object_name: &str) -> anyhow::Result<bool> {
+		match self.get_object_meta(object_name).await {
+			Ok(_) => Ok(true),
+			Err(e) if e.to_string().contains("NoSuchKey") => Ok(false),
+			Err(e) => Err(e),
+		}
 	}
 
 	// https://www.alibabacloud.com/help/zh/oss/developer-reference/ddd-signatures-to-urls

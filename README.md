@@ -45,6 +45,7 @@ ALI_OSS_INTERNAL=false
 - append_object(object_name, byptes, position)
 - head_object(object_name)
 - get_object_meta(object_name)
+- is_object_exist(object_name)
 
 - sign_object(object_name, duration_time)
 
