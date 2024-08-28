@@ -3,13 +3,13 @@ name = "ali-oss"
 version = "0.0.4"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-description = "an aliyun oss skd"
+description = "an aliyun oss sdk for rust"
 authors = ["sanmu <578595193@qq.com>"]
 repository = "https://github.com/rust-china/ali-oss"
 documentation = "https://docs.rs/ali-oss"
 categories = ["api-bindings"]
 keywords = ["async", "aliyun", "oss", "sdk"]
-exclude = ["/example"]
+exclude = ["/examples"]
 
 [dependencies]
 anyhow = "1.0"
