@@ -7,8 +7,8 @@ async fn main() -> anyhow::Result<()> {
 	common::load_env()?;
 
 	let oss_client = crate::Client::from_env()?;
-	let headers = oss_client.head_object("lib.rs").await?;
-	println!("head_object headers: {:?}", headers);
+	oss_client.delete_multiple_objects(vec!["lib.rs", "lib2.rs"]).await?;
+	println!("delete_object success");
 
 	Ok(())
 }

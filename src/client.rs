@@ -233,7 +233,38 @@ impl Client {
 		}
 		Ok(())
 	}
+	// https://help.aliyun.com/zh/oss/developer-reference/deletemultipleobjects
+	pub async fn delete_multiple_objects(&self, object_names: Vec<&str>) -> anyhow::Result<()> {
+		let object_names = object_names.into_iter().map(|object_name| self.oss_config.get_object_name(object_name));
+		let xml_body = {
+			let xml_objects = object_names
+				.into_iter()
+				.map(|object_name| format!("<Object><Key>{}</Key></Object>", self.oss_config.get_object_name(&object_name)))
+				.collect::<Vec<String>>()
+				.join("");
+			format!(
+				r#"<?xml version="1.0" encoding="UTF-8"?>
+					<Delete>
+							<Quiet>true</Quiet>
+							{}
+					</Delete>"#,
+				xml_objects
+			)
+		};
 
+		static OBJECT_META: &str = "delete";
+		let mut request = self.oss_config.get_bucket_request(reqwest::Method::POST, Some(xml_body.clone().into()))?;
+		request.url_mut().set_query(Some(OBJECT_META));
+		request.headers_mut().insert("Content-Type", "application/xml".try_into()?);
+		request.body_mut().replace(reqwest::Body::from(xml_body));
+		self.oss_config.sign_header_request(&mut request)?;
+
+		let response = self.oss_config.get_request_builder(request)?.send().await?;
+		if !response.status().is_success() {
+			return Err(anyhow::anyhow!(response.text().await?));
+		}
+		Ok(())
+	}
 	// https://help.aliyun.com/zh/oss/developer-reference/copyobject
 	pub async fn copy_object(&self, dest_object_name: &str, source_object_name: &str) -> anyhow::Result<reqwest::header::HeaderMap> {
 		let dest_object_name = self.oss_config.get_object_name(dest_object_name);

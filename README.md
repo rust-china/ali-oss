@@ -41,6 +41,7 @@ ALI_OSS_INTERNAL=false
 - put_object_stream(object_name, stream)
 - get_object(object_name)
 - delete_object(object_name)
+- delete_multiple_objects(object_names)
 - copy_object(dest_object_name, source_object_name)
 - append_object(object_name, byptes, position)
 - head_object(object_name)

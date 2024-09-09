@@ -1,4 +1,5 @@
 use crate::SignatureAble;
+use base64::prelude::*;
 use reqwest::{header, Method, Url};
 use std::borrow::Cow;
 
@@ -103,6 +104,11 @@ impl OssConfig {
 					request.headers_mut().insert(header::CONTENT_TYPE, "text/plain".try_into()?);
 				}
 			}
+			// 计算md5
+			request.headers_mut().insert("Content-MD5", {
+				let md5_hash = md5::compute(&body);
+				base64::engine::general_purpose::STANDARD.encode(md5_hash.as_slice()).try_into()?
+			});
 			request.headers_mut().insert(header::CONTENT_LENGTH, body.len().try_into()?);
 			*request.body_mut() = Some(reqwest::Body::from(body));
 		}
