@@ -1,6 +1,6 @@
 [package]
 name = "ali-oss"
-version = "0.0.5"
+version = "0.0.11"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "an aliyun oss sdk for rust"
@@ -14,16 +14,15 @@ exclude = ["/examples"]
 [dependencies]
 anyhow = "1.0"
 chrono = "0.4"
-
 base64 = "0.22"
 md5 = "0.7"
 ring = "0.17"
-
 reqwest = { version = "0.12", features = ["stream"] }
 roxmltree = "0.20"
 futures = "0.3"
 bytes = "1.6.0"
 infer = "0.16.0"
+percent-encoding = "2.3.1"
 
 [dev-dependencies]
 dotenvy = "0.15.7"

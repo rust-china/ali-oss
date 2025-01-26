@@ -3,6 +3,7 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use reqwest::Method;
 use std::ops::Deref;
 
+#[derive(Debug)]
 pub struct HeaderSignature {
 	pub method: Method,
 	pub content_md5: Option<String>,

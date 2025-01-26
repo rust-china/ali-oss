@@ -343,7 +343,7 @@ impl Client {
 
 	// https://www.alibabacloud.com/help/zh/oss/developer-reference/ddd-signatures-to-urls
 	pub async fn sign_object(&self, object_name: &str, expires_duration: std::time::Duration) -> anyhow::Result<String> {
-		let object_name = self.oss_config.get_object_name(object_name);
+		let object_name = self.oss_config.get_decoded_object_name(object_name);
 		let expires_time = {
 			let datetime: chrono::DateTime<chrono::Utc> = std::time::SystemTime::now().into();
 			let expires_time = datetime + chrono::Duration::from_std(expires_duration)?;
@@ -378,7 +378,7 @@ impl Client {
 	pub async fn put_symlink(&self, symlink_object_name: &str, target_object_name: &str) -> anyhow::Result<()> {
 		static SYMLINK: &str = "symlink";
 		let symlink_object_name = self.oss_config.get_object_name(symlink_object_name);
-		let target_object_name = self.oss_config.get_object_name(target_object_name);
+		let target_object_name = self.oss_config.get_encoded_object_name(target_object_name);
 		let mut request = self.oss_config.get_bucket_request(reqwest::Method::PUT, None)?;
 		request.url_mut().set_path(symlink_object_name.as_ref());
 		request.headers_mut().insert("x-oss-symlink-target", target_object_name.as_ref().try_into()?);

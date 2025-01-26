@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct CanonicalizedResource(String);
 
 impl Default for CanonicalizedResource {
